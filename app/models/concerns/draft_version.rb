@@ -11,4 +11,12 @@ module DraftVersion
 
   end
 
+
+  def draft?
+    draft_pid = pid && pid.start_with?(PidUtils.draft_namespace)
+    draft_namespace = inner_object && inner_object.namespace == PidUtils.draft_namespace
+
+    draft_pid || draft_namespace
+  end
+
 end
