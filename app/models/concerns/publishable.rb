@@ -1,8 +1,6 @@
 module Publishable
   extend ActiveSupport::Concern
 
-  STATE_DELETED = 'D'
-
   def workflow_status
     raise "Production objects don't have a workflow" unless draft?
     if published?
@@ -58,13 +56,20 @@ module Publishable
   end
 
   # copy the published object over the draft
-  def revert!
+  def revert!(user_id = nil)
+    user = User.find(user_id) if user_id
+
     published_pid = PidUtils.to_published(pid)
     draft_pid = PidUtils.to_draft(pid)
 
     if self.class.exists? published_pid
       destroy_draft_version!
       FedoraObjectCopyService.new(self.class, from: published_pid, to: draft_pid).run
+
+      # ensure the solr index is up to date
+      update_index
+
+      audit(user, 'Reverted to published version')
     end
   end
 

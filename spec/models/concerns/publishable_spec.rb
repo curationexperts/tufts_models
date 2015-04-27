@@ -197,6 +197,36 @@ describe Publishable do
     end
   end
 
+  describe '#revert!' do
+    subject { TuftsImage.build_draft_version(title: 'My title', displays: ['dl']) }
+    let(:user) { FactoryGirl.create(:user) }
+    let(:draft_pid) { PidUtils.to_draft(subject.pid) }
+    let(:published_pid) { PidUtils.to_published(subject.pid) }
+
+    context "when the draft and published version exists" do
+      before do
+        subject.save!
+        subject.publish!
+      end
+
+      it "reverts the draft to the published version" do
+        published_version = subject.find_published
+
+        subject.title = "new title"
+        subject.save
+
+        subject.revert!
+
+        expect(subject.reload.title).to eq("My title")
+      end
+
+      it "ensures the solr index is updated afterwards" do
+        expect(subject).to receive(:update_index).once { true }
+        subject.revert!
+      end
+    end
+  end
+
   describe "#purge!" do
     subject { TuftsImage.build_draft_version(title: 'My title', displays: ['dl']) }
 
